@@ -1,0 +1,90 @@
+---
+output: pdf_document
+---
+#Exploring the relationship between a set of variables and miles per gallon (MPG) 
+
+##Executive Summary  
+In this analysis I used the motor trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, I am interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome) and particularly interested in the following two questions,   
+                        So,I do linear regression on all variables and exploring relationship between miles per gallon with other variables. I choose those variables that have impact on our model and left others models. Then, I confirm my result by various measures, like regression plot and hypothesis testing. I came up with result that there is quite difference between automatic or manual transmission better for MPG. 
+
+##Data Processing
+Firstly I grab libraries and dataset needed for that analysis.
+
+```{r}
+library(ggplot2)
+data(mtcars)
+data<-mtcars
+```
+
+##Exploratory Analysis
+After that I do little bit of exploratory analysis for understanding, visually seeing and exploring relationships. And see on appendix for its figure 1.1
+
+```{r}
+str(mtcars)
+colnames(mtcars)
+```
+
+##Model design and selection
+Firstly I do multivariate regression to explore relationship between all variables and then choosing those that have quite impact on mpg and using backward-elimination strategy to eliminate the unrelated variables one-at-a-time.
+```{r}
+temp<-summary(lm(data=data,mpg~.-1))$coeff
+temp[order(temp[,"Pr(>|t|)"]),][1:3,]
+```
+and then after selection top three that have impact and choosing wt, qsec, am and neglection others. Then fitting models and seeing quite improvment in p-value
+
+```{r}
+ImprovedData<-mtcars[,c("mpg","am","qsec","wt")]
+temp<-summary(lm(data=ImprovedData,mpg~.-1))$coeff
+temp[order(temp[,"Pr(>|t|)"]),]
+```
+
+and coefficients for my model will be 
+
+```{r}
+fit<-lm(data=ImprovedData,mpg~.-1)
+fit
+```
+
+and then quantifying the difference by the following graph,
+```{r}
+par(mfrow = c(1, 1)); x<-mtcars$mpg; y<-mtcars$am+mtcars$wt+mtcars$qsec
+plot(x,y,frame = FALSE,col=mtcars$am+3,cex=1,bg = "salmon")
+abline(h = mean(y[mtcars$am==0]), lwd = 3,col="green"); abline(h = mean(y[mtcars$am==1]), lwd = 3,col="blue")
+fit1<-lm(I(y[mtcars$am==0])~I(x[mtcars$am==0])); abline(fit1,col="green")
+fit2<-lm(I(y[mtcars$am==1])~I(x[mtcars$am==1])); abline(fit2,col="blue")
+abline(lm(y~x),lwd=2)
+legend("topright", inset=.05, title="Transmisison Type",c("Automatic","Manual"), fill=c("Blue","Green"), horiz=TRUE)
+```
+
+for seeing relation among them as, see in appendix for figure 1.2,and then checking validation of my model,
+For verifying our model, see various error measures in appendix figure 1.3
+
+##Conclusion
+
+So by looking at my model, it is quite vivid that there is quite difference between automatic or manual transmission better for MPG. And doing t test on it for further verification.
+
+```{r}
+coeff <-summary(lm(mpg~.-1, data = ImprovedData))$coeff
+CInterval <- coeff["am", 1] + c(-1, 1) * qt(0.975, df = lm(mpg~.-1, data = ImprovedData)$df) # coeff["am",2]
+CInterval
+```
+So, looing at the 95% of our model, it suggests that changing from automatic to manual transmission give a 2.2 to 6.39 increase in miles per gallon for the cars. So, in a nutshell, manual transmission performance is quite good as compagreen to automatic transmission.
+
+##Appendix
+Figure 1.1 for exploratory analysis is below
+```{r}
+p <- ggplot(mtcars, aes(factor(am), mpg))
+p + geom_boxplot() + geom_jitter()+ggtitle("MPG VS Transmission type")+xlab("Transmission type")
+```
+Figure 1.2  seeing relation among varialbles is below
+
+```{r}
+pairs(ImprovedData, panel = panel.smooth, main = "comparisons",col=3+ImprovedData$am)
+```
+
+Figure 1.3 for various error measures is below
+
+```{r}
+par(mfrow = c(2, 2)); par(mar=c(3.1,2.1,1.1,1.1))
+fit <- lm(mpg ~ . -1, data = ImprovedData); plot(fit)
+```
